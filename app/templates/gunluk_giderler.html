@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Yol / Yemek — Finora{% endblock %}
+{% block page_title %}🚗 Yol / Yemek / Günlük{% endblock %}
+
+{% block content %}
+{% set yol_t   = giderler|selectattr('tip','equalto','yol')  |sum(attribute='miktar') %}
+{% set yemek_t = giderler|selectattr('tip','equalto','yemek')|sum(attribute='miktar') %}
+{% set diger_t = giderler|selectattr('tip','equalto','diger')|sum(attribute='miktar') %}
+{% set toplam  = yol_t + yemek_t + diger_t %}
+
+<div class="summary-cards" style="margin-bottom:1.2rem">
+  <div class="stat-card orange">
+    <span class="stat-icon">🚗</span>
+    <span class="stat-label">Bugün Yol</span>
+    <span class="stat-value amt-orange">{{ "%.2f"|format(yol_t) }} ₺</span>
+  </div>
+  <div class="stat-card green">
+    <span class="stat-icon">🍽️</span>
+    <span class="stat-label">Bugün Yemek</span>
+    <span class="stat-value amt-green">{{ "%.2f"|format(yemek_t) }} ₺</span>
+  </div>
+  <div class="stat-card blue">
+    <span class="stat-icon">📦</span>
+    <span class="stat-label">Bugün Diğer</span>
+    <span class="stat-value amt-blue">{{ "%.2f"|format(diger_t) }} ₺</span>
+  </div>
+  <div class="stat-card red">
+    <span class="stat-icon">💸</span>
+    <span class="stat-label">Bugün Toplam</span>
+    <span class="stat-value amt-red">{{ "%.2f"|format(toplam) }} ₺</span>
+  </div>
+</div>
+
+<div class="page-grid">
+  <div class="section-card">
+    <div class="section-title">➕ Gider Ekle</div>
+    <form id="giderForm" class="form-stack">
+      <div class="form-row">
+        <div class="field">
+          <label>Tür</label>
+          <select id="gg_tip">
+            <option value="yol">🚗 Yol / Ulaşım</option>
+            <option value="yemek">🍽️ Yemek</option>
+            <option value="diger">📦 Diğer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tarih</label>
+          <input type="date" id="gg_tarih" value="{{ bugun }}"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Başlık</label>
+        <input type="text" id="gg_baslik" placeholder="Otobüs, öğle yemeği…" required/>
+      </div>
+      <div class="field">
+        <label>Tutar (₺)</label>
+        <input type="number" id="gg_miktar" step="0.01" placeholder="0,00" required/>
+      </div>
+      <div class="field">
+        <label>Açıklama</label>
+        <input type="text" id="gg_aciklama" placeholder="Opsiyonel…"/>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">💾 Kaydet</button>
+    </form>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">📋 {{ bugun }} Günlük Giderler</div>
+    {% if giderler %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Tür</th><th>Başlık</th><th class="right">Tutar</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for g in giderler %}
+          <tr id="gg-{{ g.id }}">
+            <td>
+              {% if g.tip == 'yol' %}<span class="badge badge-orange">🚗 Yol</span>
+              {% elif g.tip == 'yemek' %}<span class="badge badge-green">🍽️ Yemek</span>
+              {% else %}<span class="badge badge-gray">📦 Diğer</span>{% endif %}
+            </td>
+            <td>{{ g.baslik }}</td>
+            <td class="right amount amt-orange">{{ "%.2f"|format(g.miktar) }} ₺</td>
+            <td class="actions"><button class="btn-icon" onclick="del('/api/gunluk-gider/{{ g.id }}','gg-{{ g.id }}')">🗑</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="total-line">
+      <span>Toplam</span>
+      <strong class="amt-orange">{{ "%.2f"|format(toplam) }} ₺</strong>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">🚗</div><p>Bugün için kayıt yok.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('giderForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const res = await post('/api/gunluk-gider', {
+    tip:      document.getElementById('gg_tip').value,
+    baslik:   document.getElementById('gg_baslik').value,
+    miktar:   document.getElementById('gg_miktar').value,
+    tarih:    document.getElementById('gg_tarih').value,
+    aciklama: document.getElementById('gg_aciklama').value
+  });
+  if (res.ok) { toast('Gider eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  else toast('Hata oluştu', 'error');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% block title %}AI Danışman — Finora{% endblock %}
+{% block page_title %}🤖 AI Finansal Danışman{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-ghost btn-sm" onclick="temizle()">🗑 Geçmişi Temizle</button>
+{% endblock %}
+
+{% block content %}
+<div class="ai-layout">
+
+  <!-- SOL: Skor & Sağlık -->
+  <aside class="ai-sidebar">
+
+    <div class="section-card" style="margin-bottom:.75rem">
+      <div class="section-title">🏥 Finansal Sağlık</div>
+      <div class="health-ring-wrap">
+        <svg viewBox="0 0 80 80" class="health-ring-svg">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="8"/>
+          <circle cx="40" cy="40" r="34" fill="none"
+                  stroke="{{ '#4ade80' if skor >= 70 else '#fbbf24' if skor >= 40 else '#f87171' }}"
+                  stroke-width="8"
+                  stroke-dasharray="{{ skor * 2.136 }} 213.6"
+                  stroke-dashoffset="0"
+                  stroke-linecap="round"
+                  transform="rotate(-90 40 40)"/>
+        </svg>
+        <div class="health-ring-label">
+          <span class="health-score-num {{ 'green' if skor >= 70 else 'yellow' if skor >= 40 else 'red' }}">{{ skor }}</span>
+          <span class="health-score-sub">/ 100</span>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:.8rem;color:var(--text-2);margin-bottom:.75rem">
+        {% if skor >= 80 %}🟢 Mükemmel{% elif skor >= 60 %}🟡 İyi{% elif skor >= 40 %}🟠 Orta{% else %}🔴 Zayıf{% endif %}
+      </div>
+      {% for icon, text, color in feedback %}
+      <div class="health-item {{ color }}">{{ icon }} {{ text }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">📊 Bu Ay Özet</div>
+      <div class="mini-stat">
+        <span>💰 Gelir</span>
+        <span class="amt-green">{{ "%.0f"|format(ozet.toplam_gelir) }} ₺</span>
+      </div>
+      <div class="mini-stat">
+        <span>💸 Gider</span>
+        <span class="amt-red">{{ "%.0f"|format(ozet.toplam_gider) }} ₺</span>
+      </div>
+      <div class="mini-stat">
+        <span>📈 Yatırım</span>
+        <span class="amt-yellow">{{ "%.0f"|format(ozet.toplam_yatirim_deger) }} ₺</span>
+      </div>
+      <div class="mini-stat strong">
+        <span>🏦 Net Kalan</span>
+        <span class="{{ 'amt-green' if ozet.kalan >= 0 else 'amt-red' }}">{{ "%.0f"|format(ozet.kalan) }} ₺</span>
+      </div>
+    </div>
+
+    <div class="section-card" style="margin-top:.75rem">
+      <div class="section-title">💡 Hızlı Sorular</div>
+      <div class="chip-grid">
+        {% for soru in oneriler %}
+        <button class="chip" onclick="hizliSor('{{ soru }}')">{{ soru }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- SAĞ: Chat -->
+  <div class="chat-panel">
+
+    <div class="chat-messages" id="chatMessages">
+      <!-- Geçmiş mesajlar -->
+      {% if not gecmis %}
+      <div class="chat-welcome">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-welcome-text">
+          <strong>Merhaba! Ben Finora AI Danışmanınızım.</strong><br>
+          Finansal sorularınızı Türkçe sorabilirsiniz. Bütçeniz, yatırımlarınız, tasarruf stratejileriniz hakkında size özel tavsiyeler veririm.
+        </div>
+      </div>
+      {% endif %}
+
+      {% for msg in gecmis %}
+      <div class="msg-row user">
+        <div class="msg-bubble user">{{ msg.soru }}</div>
+      </div>
+      <div class="msg-row ai">
+        <div class="msg-avatar">🤖</div>
+        <div class="msg-bubble ai markdown-body" data-md="{{ msg.cevap | e }}">{{ msg.cevap }}</div>
+      </div>
+      {% endfor %}
+
+      <!-- Typing indicator -->
+      <div class="typing-row" id="typing" style="display:none">
+        <div class="msg-avatar">🤖</div>
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="chat-input-area">
+      <div class="chat-input-row">
+        <textarea id="chatInput" class="chat-textarea"
+          placeholder="Finansal durumunuz hakkında bir şey sorun…"
+          rows="1"
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();gonder();}"></textarea>
+        <button class="btn btn-primary chat-send" onclick="gonder()" id="sendBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <div class="chat-hint">Enter → Gönder • Shift+Enter → Yeni satır</div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Render all AI markdown bubbles
+document.querySelectorAll('.msg-bubble.ai[data-md]').forEach(el => {
+  el.innerHTML = marked.parse(el.dataset.md);
+});
+
+// Scroll to bottom
+const msgs = document.getElementById('chatMessages');
+msgs.scrollTop = msgs.scrollHeight;
+
+function hizliSor(soru) {
+  document.getElementById('chatInput').value = soru;
+  gonder();
+}
+
+async function gonder() {
+  const input = document.getElementById('chatInput');
+  const soru  = input.value.trim();
+  if (!soru) return;
+
+  // Add user bubble
+  appendMsg('user', soru);
+  input.value = '';
+  input.style.height = '';
+
+  // Show typing
+  const typing = document.getElementById('typing');
+  typing.style.display = 'flex';
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Disable send
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const res  = await post('/api/ai/chat', { soru });
+    const data = await res.json();
+    typing.style.display = 'none';
+
+    if (data.cevap) appendMsg('ai', data.cevap, true);
+    else appendMsg('ai', '⚠️ Bir hata oluştu. Lütfen tekrar deneyin.', false);
+  } catch(e) {
+    typing.style.display = 'none';
+    appendMsg('ai', '⚠️ Bağlantı hatası.', false);
+  }
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function appendMsg(role, text, isMarkdown) {
+  if (role === 'user') {
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    row.innerHTML = `<div class="msg-bubble user">${escHtml(text)}</div>`;
+    msgs.appendChild(row);
+  } else {
+    const row = document.createElement('div');
+    row.className = 'msg-row ai';
+    const parsed = (isMarkdown && typeof marked !== 'undefined') ? marked.parse(text) : escHtml(text);
+    row.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-bubble ai markdown-body">${parsed}</div>`;
+    msgs.appendChild(row);
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function temizle() {
+  if (!confirm('Sohbet geçmişini temizlemek istediğinize emin misiniz?')) return;
+  await post('/api/ai/chat/temizle', {});
+  location.reload();
+}
+
+// Auto-resize textarea
+document.getElementById('chatInput').addEventListener('input', function() {
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+});
+</script>
+{% endblock %}

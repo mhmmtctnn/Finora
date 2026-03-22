@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{% block title %}Finora{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<!-- ════════ SIDEBAR ════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">💰</span>
+    <span class="logo-text">Finora</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <span class="nav-section-label">Genel</span>
+    <a href="/" class="nav-item {{ 'active' if current_path == '/' else '' }}">
+      <span class="nav-icon">🏠</span><span>Dashboard</span>
+    </a>
+
+    <span class="nav-section-label">Gelir & Gider</span>
+    <a href="/gelirler" class="nav-item {{ 'active' if '/gelirler' in current_path else '' }}">
+      <span class="nav-icon">💵</span><span>Gelirler</span>
+    </a>
+    <a href="/sabit-giderler" class="nav-item {{ 'active' if '/sabit-giderler' in current_path else '' }}">
+      <span class="nav-icon">🏠</span><span>Sabit Giderler</span>
+    </a>
+    <a href="/taksitler" class="nav-item {{ 'active' if '/taksitler' in current_path else '' }}">
+      <span class="nav-icon">📆</span><span>Taksitler</span>
+    </a>
+    <a href="/kredi-karti" class="nav-item {{ 'active' if '/kredi-karti' in current_path else '' }}">
+      <span class="nav-icon">💳</span><span>Kredi Kartı</span>
+    </a>
+    <a href="/gunluk-giderler" class="nav-item {{ 'active' if '/gunluk-giderler' in current_path else '' }}">
+      <span class="nav-icon">🚗</span><span>Yol / Yemek</span>
+    </a>
+    <a href="/periyodikler" class="nav-item {{ 'active' if '/periyodikler' in current_path else '' }}">
+      <span class="nav-icon">🔁</span><span>Periyodik İşlemler</span>
+    </a>
+
+    <span class="nav-section-label">Yatırım</span>
+    <a href="/yatirimlar" class="nav-item {{ 'active' if '/yatirimlar' in current_path else '' }}">
+      <span class="nav-icon">📈</span><span>Yatırımlar</span>
+    </a>
+    <a href="/alacaklar" class="nav-item {{ 'active' if '/alacaklar' in current_path else '' }}">
+      <span class="nav-icon">🛍️</span><span>Alacaklar Listesi</span>
+    </a>
+
+    <span class="nav-section-label">Yapay Zeka</span>
+    <button type="button" class="nav-item" onclick="openAiPopup()" style="border:none;width:100%;text-align:left;background:transparent">
+      <span class="nav-icon">🤖</span><span>AI Danışman (Popup)</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <span>🗓️</span>
+    <span>{{ now.strftime('%B %Y') }}</span>
+  </div>
+</aside>
+
+<!-- ════════ MAIN ════════ -->
+<main class="main-content">
+  <div class="topbar">
+    <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+    <div class="flex-row">
+      {% block topbar_actions %}{% endblock %}
+    </div>
+  </div>
+  <div class="content-body">
+    <div class="page-help">
+      {% if current_path == '/' %}
+        <strong>👋 Hoş geldin!</strong> Bu sayfa aylık durumunu tek bakışta gösterir: gelir, gider, kalan bütçe ve öneriler.
+      {% elif '/gelirler' in current_path %}
+        <strong>💵 İpucu:</strong> Maaş, ek gelir ve kira gibi kalemleri ayrı girersen analizler daha doğru olur.
+      {% elif '/sabit-giderler' in current_path %}
+        <strong>🏠 İpucu:</strong> Kira, fatura ve abonelikleri burada tut. AI komutlarıyla hızlı ekleme/güncelleme yapabilirsin.
+      {% elif '/taksitler' in current_path %}
+        <strong>📆 İpucu:</strong> Toplam tutar ve taksit sayısını gir, sistem aylık ödemeyi otomatik hesaplar.
+      {% elif '/kredi-karti' in current_path %}
+        <strong>💳 İpucu:</strong> Harcamaları kategoriye göre girerek en çok nereye para gittiğini kolayca gör.
+      {% elif '/gunluk-giderler' in current_path %}
+        <strong>🚗🍽️ İpucu:</strong> Günlük küçük harcamaları yazmak aylık farkındalığı ciddi artırır.
+      {% elif '/periyodikler' in current_path %}
+        <strong>🔁 İpucu:</strong> Yıllık/6 aylık ödemeleri buraya ekle, yaklaşınca otomatik listede görünür.
+      {% elif '/yatirimlar' in current_path %}
+        <strong>📈 İpucu:</strong> Maliyet ve güncel fiyatları düzenli girerek gerçek kâr/zararını takip et.
+      {% elif '/alacaklar' in current_path %}
+        <strong>🛍️ İpucu:</strong> Satın almayı düşündüğün ürünleri burada planla, taksit etkisini görerek karar ver.
+      {% else %}
+        <strong>🤖 İpucu:</strong> AI'a doğal cümleyle yazabilirsin: “gelirlere 5.000 TL ekle”, “telefon giderini güncelle” gibi.
+      {% endif %}
+    </div>
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<button id="aiFab" class="ai-fab" type="button" onclick="openAiPopup()" title="AI Danışman">
+  🤖
+</button>
+
+<div id="aiPopup" class="ai-popup-overlay" aria-hidden="true">
+  <div class="ai-popup" role="dialog" aria-modal="true" aria-label="AI Danışman">
+    <div class="ai-popup-head">
+      <div class="ai-popup-title">🤖 AI Danışman</div>
+      <div class="flex-row">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="clearAiPopupHistory()">Geçmişi Temizle</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="closeAiPopup()">Kapat</button>
+      </div>
+    </div>
+    <div id="aiPopupMessages" class="ai-popup-messages"></div>
+    <div class="ai-popup-input-wrap">
+      <textarea id="aiPopupInput" class="ai-popup-input" rows="1" placeholder="Finansal sorunu yaz..."></textarea>
+      <button id="aiPopupSend" class="chat-send-btn" type="button" onclick="sendAiPopupMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='charts.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  butceplan:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: butceplan_app
+    ports:
+      - "5000:5000"
+    volumes:
+      - db_data:/app/instance
+    environment:
+      - FLASK_ENV=production
+      - PRIVACY_MODE=1
+    restart: unless-stopped
+
+volumes:
+  db_data:

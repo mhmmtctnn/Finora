@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Periyodik İşlemler — Finora{% endblock %}
+{% block page_title %}🔁 Periyodik İşlemler{% endblock %}
+
+{% block content %}
+<div class="summary-cards" style="margin-bottom:1.2rem">
+  <div class="stat-card purple">
+    <span class="stat-icon">🔁</span>
+    <span class="stat-label">Toplam Kayıt</span>
+    <span class="stat-value amt-purple">{{ kayitlar|length }}</span>
+  </div>
+  <div class="stat-card red">
+    <span class="stat-icon">💸</span>
+    <span class="stat-label">Aktif Gider</span>
+    <span class="stat-value amt-red">{{ kayitlar|selectattr('aktif','eq',True)|selectattr('tur','eq','gider')|list|length }}</span>
+  </div>
+  <div class="stat-card green">
+    <span class="stat-icon">💰</span>
+    <span class="stat-label">Aktif Gelir</span>
+    <span class="stat-value amt-green">{{ kayitlar|selectattr('aktif','eq',True)|selectattr('tur','eq','gelir')|list|length }}</span>
+  </div>
+</div>
+
+<div class="dash-grid">
+  <div class="section-card">
+    <div class="section-title">➕ Periyodik Kayıt Ekle</div>
+    <form id="perForm" class="form-stack">
+      <div class="form-row">
+        <div class="field">
+          <label>Tür</label>
+          <select id="p_tur">
+            <option value="gider">💸 Gider</option>
+            <option value="gelir">💰 Gelir</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Kategori</label>
+          <select id="p_kategori">
+            <option value="trafik_sigortasi">🚘 Trafik Sigortası</option>
+            <option value="kasko">🛡️ Kasko</option>
+            <option value="mtv">🧾 MTV</option>
+            <option value="vergi">🏛️ Vergi</option>
+            <option value="diger" selected>📦 Diğer</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Başlık</label>
+        <input type="text" id="p_baslik" placeholder="Örn: Zorunlu Trafik Sigortası" required/>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Tutar (₺)</label>
+          <input type="number" id="p_miktar" step="any" required/>
+        </div>
+        <div class="field">
+          <label>Tekrar Periyodu</label>
+          <select id="p_periyot">
+            <option value="1">Her ay</option>
+            <option value="3">3 ayda bir</option>
+            <option value="6">6 ayda bir</option>
+            <option value="12" selected>Yılda bir</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Sonraki Yenileme Tarihi</label>
+        <input type="date" id="p_tarih" required/>
+      </div>
+      <div class="field">
+        <label>Not</label>
+        <input type="text" id="p_not" placeholder="Opsiyonel"/>
+      </div>
+      <button class="btn btn-primary btn-full" type="submit">Kaydet</button>
+    </form>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">📅 Yaklaşan Kayıtlar</div>
+    {% if kayitlar %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tür</th><th>Başlık</th><th>Kategori</th><th>Tutar</th><th>Sonraki</th><th>Durum</th><th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in kayitlar %}
+          {% set gun = (p.sonraki_tarih - now.date()).days %}
+          <tr id="pi-{{ p.id }}">
+            <td>{{ '💸' if p.tur == 'gider' else '💰' }}</td>
+            <td>{{ p.baslik }}</td>
+            <td>{{ p.kategori }}</td>
+            <td class="amount {{ 'amt-red' if p.tur == 'gider' else 'amt-green' }}">{{ "%.2f"|format(p.miktar) }} ₺</td>
+            <td>{{ p.sonraki_tarih.strftime('%d.%m.%Y') }}<br><span class="small dim">{{ p.periyot_ay }} ayda bir</span></td>
+            <td>
+              {% if not p.aktif %}
+              <span class="badge badge-gray">Pasif</span>
+              {% elif gun <= 7 %}
+              <span class="badge badge-red">{{ gun }} gün kaldı</span>
+              {% elif gun <= 30 %}
+              <span class="badge badge-orange">{{ gun }} gün kaldı</span>
+              {% else %}
+              <span class="badge badge-blue">{{ gun }} gün kaldı</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display:flex;gap:.25rem">
+                <button class="btn-icon green" onclick="yenile({{ p.id }})" title="Ödendi / sonraki tarihe taşı">✅</button>
+                <button class="btn-icon" onclick="aktifDegistir({{ p.id }}, {{ 'false' if p.aktif else 'true' }})" title="Aktif/Pasif">
+                  {{ '⏸️' if p.aktif else '▶️' }}
+                </button>
+                <button class="btn-icon" onclick="del('/api/periyodik/{{ p.id }}','pi-{{ p.id }}')">🗑</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">🔁</div><p>Periyodik kayıt bulunmuyor.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+if (!document.getElementById('p_tarih').value) {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  document.getElementById('p_tarih').value = d.toISOString().slice(0,10);
+}
+
+document.getElementById('perForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const res = await post('/api/periyodik', {
+    tur: document.getElementById('p_tur').value,
+    kategori: document.getElementById('p_kategori').value,
+    baslik: document.getElementById('p_baslik').value,
+    miktar: document.getElementById('p_miktar').value,
+    periyot_ay: document.getElementById('p_periyot').value,
+    sonraki_tarih: document.getElementById('p_tarih').value,
+    notlar: document.getElementById('p_not').value
+  });
+  if (res.ok) {
+    toast('Periyodik kayıt eklendi ✓', 'success');
+    setTimeout(() => location.reload(), 500);
+  } else {
+    toast('Kayıt eklenemedi', 'error');
+  }
+});
+
+async function yenile(id) {
+  const res = await post('/api/periyodik/' + id + '/yenile', {});
+  if (res.ok) {
+    toast('Sonraki yenileme tarihine taşındı ✓', 'success');
+    setTimeout(() => location.reload(), 500);
+  }
+}
+
+async function aktifDegistir(id, aktif) {
+  const res = await patch('/api/periyodik/' + id, { aktif });
+  if (res.ok) {
+    toast('Durum güncellendi ✓', 'success');
+    setTimeout(() => location.reload(), 500);
+  }
+}
+</script>
+{% endblock %}

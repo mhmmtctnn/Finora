@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Alacaklar Listesi — Finora{% endblock %}
+{% block page_title %}🛒 Alacaklar Listesi{% endblock %}
+
+{% block content %}
+
+{% set toplam_fiyat = alacaklar | selectattr('durum','eq','bekliyor') | sum(attribute='fiyat') %}
+
+<div class="summary-cards" style="margin-bottom:1.2rem">
+  <div class="stat-card yellow">
+    <span class="stat-icon">🛍️</span>
+    <span class="stat-label">Bekleyen Kalem</span>
+    <span class="stat-value amt-yellow">{{ alacaklar|selectattr('durum','eq','bekliyor')|list|length }}</span>
+  </div>
+  <div class="stat-card orange">
+    <span class="stat-icon">💸</span>
+    <span class="stat-label">Toplam Beklenen</span>
+    <span class="stat-value amt-orange">{{ "%.2f"|format(toplam_fiyat or 0) }} ₺</span>
+  </div>
+  <div class="stat-card green">
+    <span class="stat-icon">✅</span>
+    <span class="stat-label">Alınan</span>
+    <span class="stat-value amt-green">{{ alacaklar|selectattr('durum','eq','alindi')|list|length }}</span>
+  </div>
+</div>
+
+<div class="dash-grid">
+
+  <!-- EKLE -->
+  <div class="section-card">
+    <div class="section-title">➕ Listeye Ekle</div>
+
+    <div class="field" style="margin-bottom:.75rem">
+      <label>Ürün URL'si <span class="dim small">(opsiyonel)</span></label>
+      <div style="display:flex;gap:.4rem">
+        <input type="text" id="a_url" placeholder="https://trendyol.com/…" style="flex:1"/>
+        <button class="btn btn-ghost btn-sm" id="fetchBtn" onclick="fiyatCek()">🔍 Çek</button>
+      </div>
+    </div>
+
+    <form id="alacakForm" class="form-stack">
+      <div class="field">
+        <label>Ürün Adı</label>
+        <input type="text" id="a_baslik" placeholder="iPhone 16 Pro…" required/>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Fiyat (₺)</label>
+          <input type="number" id="a_fiyat" step="any" placeholder="0,00"/>
+        </div>
+        <div class="field">
+          <label>Taksit Sayısı</label>
+          <input type="number" id="a_taksit" value="1" min="1" max="48"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Kategori</label>
+          <input type="text" id="a_kategori" placeholder="Elektronik, Giyim…"/>
+        </div>
+        <div class="field">
+          <label>Öncelik</label>
+          <select id="a_oncelik">
+            <option value="dusuk">🟢 Düşük</option>
+            <option value="orta" selected>🟡 Orta</option>
+            <option value="yuksek">🔴 Yüksek</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Not</label>
+        <input type="text" id="a_notlar" placeholder="Opsiyonel…"/>
+      </div>
+
+      <!-- BÜTÇEye ETKİSİ -->
+      <div id="butceEtkisi" style="display:none" class="info-box">
+        <div style="font-weight:600;margin-bottom:.3rem">📊 Bütçeye Etkisi</div>
+        <div id="butceEtkisiIcerik" style="font-size:.85rem;line-height:1.6"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">💾 Listeye Ekle</button>
+    </form>
+  </div>
+
+  <!-- LİSTE -->
+  <div class="section-card" style="grid-column:span 1">
+    <div class="section-title">📋 Alacaklar</div>
+    {% if alacaklar %}
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+      {% for item in alacaklar %}
+      <div class="wish-card {{ item.durum }} {{ item.oncelik }}" id="ai-{{ item.id }}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.25rem">
+              <span class="badge badge-{{ item.oncelik }}">
+                {% if item.oncelik == 'yuksek' %}🔴{% elif item.oncelik == 'orta' %}🟡{% else %}🟢{% endif %}
+                {{ item.oncelik|capitalize }}
+              </span>
+              <span class="badge badge-status-{{ item.durum }}">
+                {{ '✅ Alındı' if item.durum == 'alindi' else '⏳ Bekliyor' if item.durum == 'bekliyor' else '❌ İptal' }}
+              </span>
+              {% if item.kategori %}
+              <span class="badge" style="background:var(--surface3);color:var(--text-2)">{{ item.kategori }}</span>
+              {% endif %}
+            </div>
+            <div style="font-weight:600;margin-bottom:.15rem">{{ item.baslik }}</div>
+            <div style="font-size:.83rem;color:var(--text-3)">
+              {% if item.fiyat %}
+              <span class="amt-yellow">{{ "%.2f"|format(item.fiyat) }} ₺</span>
+              {% if item.taksit_sayisi and item.taksit_sayisi > 1 %}
+              — {{ item.taksit_sayisi }} taksit
+              ({{ "%.2f"|format(item.fiyat / item.taksit_sayisi) }} ₺/ay)
+              {% endif %}
+              {% endif %}
+              {% if item.url %}
+              <a href="{{ item.url }}" target="_blank" style="color:var(--accent);margin-left:.4rem;font-size:.78rem">🔗 Link</a>
+              {% endif %}
+            </div>
+            {% if item.notlar %}
+            <div style="font-size:.78rem;color:var(--text-3);margin-top:.2rem;font-style:italic">{{ item.notlar }}</div>
+            {% endif %}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end">
+            {% if item.durum == 'bekliyor' %}
+            <button class="btn-icon green" onclick="durumGuncelle({{ item.id }}, 'alindi')" title="Alındı olarak işaretle">✅</button>
+            <button class="btn-icon red"   onclick="durumGuncelle({{ item.id }}, 'iptal')"  title="İptal et">❌</button>
+            {% endif %}
+            <button class="btn-icon" onclick="del('/api/alacak/{{ item.id }}','ai-{{ item.id }}')">🗑</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">🛒</div><p>Alacaklar listeniz boş.</p></div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ozet = {{ ozet|tojson }};
+
+// Fiyat input değiştiğinde bütçe etkisini göster
+document.getElementById('a_fiyat').addEventListener('input', hesaplaEtki);
+document.getElementById('a_taksit').addEventListener('input', hesaplaEtki);
+
+function hesaplaEtki() {
+  const fiyat = parseFloat(document.getElementById('a_fiyat').value) || 0;
+  const taksit = parseInt(document.getElementById('a_taksit').value) || 1;
+  if (!fiyat) { document.getElementById('butceEtkisi').style.display = 'none'; return; }
+
+  const aylikOdeme   = fiyat / taksit;
+  const kalan        = ozet.kalan || 0;
+  const yeniKalan    = kalan - aylikOdeme;
+  const ayTasarruf   = kalan > 0 ? Math.ceil(fiyat / kalan) : '∞';
+
+  let html = `<div><b>Aylık ödeme:</b> <span class="amt-yellow">${fmtTL(aylikOdeme)}</span></div>`;
+  html += `<div><b>Mevcut kalan bütçe:</b> ${fmtTL(kalan)}</div>`;
+  if (taksit === 1) {
+    html += `<div><b>Peşin alım sonrası kalan:</b> <span class="${yeniKalan >= 0 ? 'amt-green' : 'amt-red'}">${fmtTL(yeniKalan)}</span></div>`;
+    if (yeniKalan < 0) html += `<div class="warn-text">⚠️ Bu ay bütçeniz yetmeyebilir!</div>`;
+    else html += `<div class="ok-text">✅ Şu an satın alabilirsiniz.</div>`;
+  } else {
+    html += `<div><b>Taksit eklenince kalan:</b> <span class="${yeniKalan >= 0 ? 'amt-green' : 'amt-red'}">${fmtTL(yeniKalan)}</span></div>`;
+    if (yeniKalan < 0) html += `<div class="warn-text">⚠️ Taksit eklenince bütçeniz eksi gider!</div>`;
+  }
+  if (kalan > 0 && taksit === 1) {
+    html += `<div class="dim small">Biriktirerek alım: <b>${ayTasarruf} ay</b> sonra</div>`;
+  }
+  document.getElementById('butceEtkisiIcerik').innerHTML = html;
+  document.getElementById('butceEtkisi').style.display = '';
+}
+
+async function fiyatCek() {
+  const url = document.getElementById('a_url').value.trim();
+  if (!url) { toast('URL giriniz', 'error'); return; }
+  const btn = document.getElementById('fetchBtn');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  try {
+    const res  = await post('/api/alacak/fiyat-cek', { url });
+    const data = await res.json();
+    if (data.error) { toast('Fiyat çekilemedi: ' + data.error, 'error'); }
+    else {
+      if (data.baslik) document.getElementById('a_baslik').value = data.baslik;
+      if (data.fiyat)  { document.getElementById('a_fiyat').value  = data.fiyat; hesaplaEtki(); }
+      toast('Ürün bilgisi çekildi ✓', 'success');
+    }
+  } catch(e) { toast('Bağlantı hatası', 'error'); }
+  btn.innerHTML = '🔍 Çek';
+  btn.disabled = false;
+}
+
+document.getElementById('alacakForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const res = await post('/api/alacak', {
+    baslik:       document.getElementById('a_baslik').value,
+    url:          document.getElementById('a_url').value,
+    fiyat:        document.getElementById('a_fiyat').value || null,
+    taksit_sayisi:document.getElementById('a_taksit').value,
+    kategori:     document.getElementById('a_kategori').value,
+    oncelik:      document.getElementById('a_oncelik').value,
+    notlar:       document.getElementById('a_notlar').value
+  });
+  if (res.ok) { toast('Listeye eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  else toast('Hata oluştu', 'error');
+});
+
+async function durumGuncelle(id, durum) {
+  const res = await patch('/api/alacak/' + id, { durum });
+  if (res.ok) { toast('Durum güncellendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+}
+</script>
+{% endblock %}

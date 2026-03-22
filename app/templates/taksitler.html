@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Taksitler — Finora{% endblock %}
+{% block page_title %}📆 Taksitler{% endblock %}
+
+{% block content %}
+<div class="page-grid">
+
+  <div class="section-card">
+    <div class="section-title">➕ Yeni Taksit Ekle</div>
+    <form id="taksitForm" class="form-stack">
+      <div class="field">
+        <label>Başlık</label>
+        <input type="text" id="t_baslik" placeholder="Telefon, beyaz eşya…" required/>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Toplam Tutar (₺)</label>
+          <input type="number" id="t_miktar" step="0.01" placeholder="0,00" required/>
+        </div>
+        <div class="field">
+          <label>Taksit Sayısı</label>
+          <input type="number" id="t_sayi" min="1" placeholder="12" required/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Başlangıç Ay</label>
+          <input type="number" id="t_bas_ay" min="1" max="12" value="{{ ay }}"/>
+        </div>
+        <div class="field">
+          <label>Başlangıç Yıl</label>
+          <input type="number" id="t_bas_yil" value="{{ yil }}"/>
+        </div>
+      </div>
+      <div class="field" id="aylikPreview" style="display:none">
+        <label>Aylık Ödeme (hesaplanacak)</label>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:.55rem .8rem;font-weight:700;color:var(--accent)" id="aylikVal">—</div>
+      </div>
+      <div class="field">
+        <label>Açıklama</label>
+        <input type="text" id="t_aciklama" placeholder="Opsiyonel…"/>
+      </div>
+      <button type="submit" class="btn btn-blue btn-full">💾 Kaydet</button>
+    </form>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">📋 Aktif Taksitler</div>
+    {% if taksitler %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Başlık</th><th>Aylık</th><th>Toplam</th><th>Süre</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for t in taksitler %}
+          <tr id="tr-{{ t.id }}">
+            <td><strong>{{ t.baslik }}</strong></td>
+            <td class="amount amt-red">{{ "%.2f"|format(t.aylik_odeme) }} ₺</td>
+            <td class="muted small">{{ "%.0f"|format(t.toplam_miktar) }} ₺ / {{ t.taksit_sayisi }} taksit</td>
+            <td>
+              <span class="badge badge-blue">{{ t.baslangic_ay }}/{{ t.baslangic_yil }}</span>
+              →
+              <span class="badge badge-orange">{{ t.bitis_ay }}/{{ t.bitis_yil }}</span>
+            </td>
+            <td class="actions"><button class="btn-icon" onclick="del('/api/taksit/{{ t.id }}','tr-{{ t.id }}')">🗑</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="total-line">
+      <span>Bu Ay Toplam Taksit</span>
+      <strong class="amt-red">
+        {{ "%.2f"|format(taksitler|selectattr('baslangic_yil')|sum(attribute='aylik_odeme')) }} ₺
+      </strong>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📆</div><p>Aktif taksit kaydı yok.</p></div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const miktarEl = document.getElementById('t_miktar');
+const sayiEl   = document.getElementById('t_sayi');
+const prev     = document.getElementById('aylikPreview');
+const aylikV   = document.getElementById('aylikVal');
+function calcAylik() {
+  const m = parseFloat(miktarEl.value); const s = parseInt(sayiEl.value);
+  if (m > 0 && s > 0) {
+    prev.style.display = '';
+    aylikV.textContent = (m / s).toLocaleString('tr-TR',{minimumFractionDigits:2}) + ' ₺ / ay';
+  }
+}
+miktarEl.addEventListener('input', calcAylik);
+sayiEl.addEventListener('input', calcAylik);
+
+document.getElementById('taksitForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const res = await post('/api/taksit', {
+    baslik:         document.getElementById('t_baslik').value,
+    toplam_miktar:  miktarEl.value,
+    taksit_sayisi:  sayiEl.value,
+    baslangic_ay:   document.getElementById('t_bas_ay').value,
+    baslangic_yil:  document.getElementById('t_bas_yil').value,
+    aciklama:       document.getElementById('t_aciklama').value
+  });
+  if (res.ok) { toast('Taksit eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  else toast('Hata oluştu', 'error');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local history and runtime
+.history/
+*.log
+
+# Database / secrets
+*.db
+*.sqlite
+*.sqlite3
+instance/
+.env
+.env.*
+
+# Build / cache
+.pytest_cache/
+.mypy_cache/

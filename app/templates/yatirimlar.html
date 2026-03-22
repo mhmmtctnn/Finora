@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% block title %}Yatırımlar — Finora{% endblock %}
+{% block page_title %}📈 Yatırım Portföyü{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-ghost btn-sm" id="canliBtn" onclick="canliGuncelle()">
+  🔄 Canlı Fiyat Çek
+</button>
+{% endblock %}
+
+{% block content %}
+
+{% set toplam_deger    = yatirimlar|sum(attribute='mevcut_deger') %}
+{% set toplam_maliyet  = yatirimlar|sum(attribute='maliyet') %}
+{% set toplam_kz       = toplam_deger - toplam_maliyet %}
+{% set toplam_kz_pct   = (toplam_kz / toplam_maliyet * 100)|round(2) if toplam_maliyet > 0 else 0 %}
+
+<div class="summary-cards" style="margin-bottom:1.2rem">
+  <div class="stat-card yellow">
+    <span class="stat-icon">💼</span>
+    <span class="stat-label">Portföy Değeri</span>
+    <span class="stat-value amt-yellow">{{ "%.2f"|format(toplam_deger) }} ₺</span>
+  </div>
+  <div class="stat-card blue">
+    <span class="stat-icon">💰</span>
+    <span class="stat-label">Toplam Maliyet</span>
+    <span class="stat-value amt-blue">{{ "%.2f"|format(toplam_maliyet) }} ₺</span>
+  </div>
+  <div class="stat-card {{ 'green' if toplam_kz >= 0 else 'red' }}">
+    <span class="stat-icon">{{ '📈' if toplam_kz >= 0 else '📉' }}</span>
+    <span class="stat-label">Kar / Zarar</span>
+    <span class="stat-value {{ 'amt-green' if toplam_kz >= 0 else 'amt-red' }}">
+      {{ "%+.2f"|format(toplam_kz) }} ₺
+      <span style="font-size:.9rem">({{ "%+.2f"|format(toplam_kz_pct) }}%)</span>
+    </span>
+  </div>
+</div>
+
+<div class="dash-grid">
+
+  <!-- PORTFOLIO DONUT -->
+  <div class="section-card">
+    <div class="section-title">🍩 Portföy Dağılımı</div>
+    <div class="chart-wrap tall"><canvas id="portfolioChart"></canvas></div>
+  </div>
+
+  <!-- FORM -->
+  <div class="section-card">
+    <div class="section-title">➕ Yatırım Ekle</div>
+    <form id="yatirimForm" class="form-stack">
+      <div class="form-row">
+        <div class="field">
+          <label>Tür</label>
+          <select id="y_tip">
+            <option value="dolar">💵 Dolar (USD)</option>
+            <option value="euro">💶 Euro (EUR)</option>
+            <option value="altin">🥇 Gram Altın</option>
+            <option value="gumus">🥈 Gümüş</option>
+            <option value="borsa">📈 Hisse / BIST</option>
+            <option value="kripto">₿ Kripto</option>
+            <option value="diger">📦 Diğer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Başlık</label>
+          <input type="text" id="y_baslik" placeholder="THYAO, BTC, Altın…" required/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Miktar</label>
+          <input type="number" id="y_miktar" step="any" placeholder="100" required/>
+        </div>
+        <div class="field">
+          <label>Güncel Birim Fiyat (₺)</label>
+          <input type="number" id="y_birim" step="any" placeholder="0,00" required/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Sembol <span class="dim small">(borsa/kripto için)</span></label>
+          <input type="text" id="y_sembol" placeholder="Örn: THYAO veya BTC"/>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button type="button" class="btn btn-ghost" id="y_canli_birim_btn" onclick="canliBirimDoldur()">⚡ Birim Fiyatı Canlı Çek</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Alış Maliyeti (₺) <span class="dim small">— boş bırakırsanız otomatik hesaplanır</span></label>
+        <input type="number" id="y_maliyet" step="any" placeholder="Opsiyonel…"/>
+      </div>
+      <div class="field">
+        <label>Not</label>
+        <input type="text" id="y_notlar" placeholder="Opsiyonel…"/>
+      </div>
+      <button type="submit" class="btn btn-green btn-full">💾 Kaydet</button>
+    </form>
+
+    <!-- CANLI FİYAT PANELİ -->
+    <div id="canliPanel" style="display:none;margin-top:1rem">
+      <hr class="divider"/>
+      <div class="section-title" style="margin-bottom:.5rem">💱 Piyasa Fiyatları</div>
+      <div id="canliIcerik" style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:.85rem"></div>
+    </div>
+  </div>
+
+  <!-- YATIRIM KARTLARI -->
+  <div class="full-width">
+    <div class="section-title" style="margin-bottom:.75rem">📋 Portföy Detayı</div>
+    {% if yatirimlar %}
+    <div class="inv-grid">
+      {% for y in yatirimlar %}
+      <div class="inv-card" id="yi-{{ y.id }}">
+        <div class="inv-card-header">
+          <div>
+            <div class="inv-type-icon">{{ tip_ikonu.get(y.tip,'📦') }}</div>
+            <div class="inv-title">{{ y.baslik }}</div>
+            <div class="inv-sub">{{ y.miktar }} adet / birim</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.2rem;align-items:flex-end">
+            <button class="btn-icon edit" title="Türü düzelt" onclick="tipDuzenle({{ y.id }}, '{{ y.tip }}')">🏷️</button>
+            <button class="btn-icon edit" onclick="fiyatDuzenle({{ y.id }}, {{ y.birim_fiyat }})">✏️</button>
+            <button class="btn-icon" onclick="del('/api/yatirim/{{ y.id }}','yi-{{ y.id }}')">🗑</button>
+          </div>
+        </div>
+        <div class="inv-values">
+          <div class="inv-val-item">
+            <span>Güncel Değer</span>
+            <span class="amount amt-yellow">{{ "%.2f"|format(y.mevcut_deger) }} ₺</span>
+          </div>
+          <div class="inv-val-item">
+            <span>Birim Fiyat</span>
+            <span>{{ y.birim_fiyat|tr_tl }} ₺</span>
+          </div>
+          <div class="inv-val-item">
+            <span>Maliyet</span>
+            <span class="muted">{{ "%.2f"|format(y.maliyet) }} ₺</span>
+          </div>
+          <div class="inv-val-item">
+            <span>K/Z</span>
+            <span class="amount {{ 'amt-green' if y.kar_zarar >= 0 else 'amt-red' }}">
+              {{ "%+.2f"|format(y.kar_zarar) }} ₺
+              ({{ "%+.2f"|format(y.kar_zarar_pct) }}%)
+            </span>
+          </div>
+        </div>
+        <!-- progress to cost -->
+        {% if y.maliyet > 0 %}
+        {% set pbar = [([y.mevcut_deger / y.maliyet * 100, 0]|max), 200]|min %}
+        <div class="progress-track mt-2">
+          <div class="progress-fill {{ 'green' if y.kar_zarar >= 0 else 'red' }}" data-w="{{ pbar }}%"></div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📈</div><p>Henüz yatırım kaydı yok.</p></div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- FİYAT GÜNCELLE MODAL (inline) -->
+<div id="fiyatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:1.5rem;width:340px">
+    <div class="section-title">✏️ Birim Fiyat Güncelle</div>
+    <input type="hidden" id="modal_yid"/>
+    <div class="field" style="margin-bottom:1rem">
+      <label>Yeni Birim Fiyat (₺)</label>
+      <input type="number" id="modal_fiyat" step="any" class="btn-full"/>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-primary" style="flex:1" onclick="fiyatKaydet()">Kaydet</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('fiyatModal').style.display='none'">İptal</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => { initPortfolioChart('portfolioChart'); });
+
+document.getElementById('yatirimForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const mik = parseFloat(document.getElementById('y_miktar').value);
+  const bir = parseFloat(document.getElementById('y_birim').value);
+  const mal = document.getElementById('y_maliyet').value;
+  const res = await post('/api/yatirim', {
+    tip:         document.getElementById('y_tip').value,
+    sembol:      document.getElementById('y_sembol').value,
+    baslik:      document.getElementById('y_baslik').value,
+    miktar:      mik, birim_fiyat: bir,
+    maliyet:     mal ? parseFloat(mal) : mik * bir,
+    notlar:      document.getElementById('y_notlar').value
+  });
+  if (res.ok) { toast('Yatırım eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  else toast('Hata oluştu', 'error');
+});
+
+async function canliBirimDoldur() {
+  const tip = (document.getElementById('y_tip').value || '').trim();
+  const sembol = (document.getElementById('y_sembol').value || '').trim();
+  const btn = document.getElementById('y_canli_birim_btn');
+  btn.disabled = true;
+  const old = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> Çekiliyor…';
+  try {
+    const d = await post('/api/yatirim/tek-fiyat', { tip, sembol });
+    if (d.ok && d.birim_fiyat) {
+      document.getElementById('y_birim').value = d.birim_fiyat;
+      const baslikEl = document.getElementById('y_baslik');
+      if (!baslikEl.value && d.ad) baslikEl.value = d.ad;
+      if (!baslikEl.value && d.sembol) baslikEl.value = d.sembol;
+      toast('Birim fiyat canlı veriden dolduruldu ✓', 'success');
+    } else {
+      toast(d.error || 'Canlı fiyat alınamadı', 'error');
+    }
+  } catch (_) {
+    toast('Canlı fiyat alınamadı', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = old;
+}
+
+function fiyatDuzenle(id, fiyat) {
+  document.getElementById('modal_yid').value   = id;
+  document.getElementById('modal_fiyat').value = fiyat;
+  document.getElementById('fiyatModal').style.display = 'flex';
+}
+async function fiyatKaydet() {
+  const id = document.getElementById('modal_yid').value;
+  const f  = document.getElementById('modal_fiyat').value;
+  const res = await put('/api/yatirim/' + id, { birim_fiyat: f });
+  if (res.ok) { toast('Fiyat güncellendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  document.getElementById('fiyatModal').style.display = 'none';
+}
+
+async function tipDuzenle(id, mevcutTip) {
+  const secenekler = ['dolar', 'euro', 'altin', 'gumus', 'borsa', 'kripto', 'diger'];
+  const cevap = prompt(
+    `Yeni türü yazın (mevcut: ${mevcutTip})\n` +
+    `Seçenekler: ${secenekler.join(', ')}\n` +
+    `Not: hisse yazarsanız otomatik borsa olur.`
+  );
+  if (!cevap) return;
+  const tip = cevap.trim().toLowerCase();
+  if (!tip) return;
+
+  const res = await put('/api/yatirim/' + id, { tip });
+  if (res.ok) {
+    toast('Yatırım türü güncellendi ✓', 'success');
+    setTimeout(() => location.reload(), 500);
+  } else {
+    toast('Tür güncellenemedi', 'error');
+  }
+}
+
+async function canliGuncelle() {
+  const btn = document.getElementById('canliBtn');
+  btn.innerHTML = '<span class="spinner"></span> Çekiliyor…';
+  btn.disabled = true;
+  try {
+    const up = await post('/api/yatirim/canli-guncelle', {});
+    const data = await requestJson('/api/yatirim/canli-fiyat');
+    const panel = document.getElementById('canliPanel');
+    const ic    = document.getElementById('canliIcerik');
+    panel.style.display = '';
+    const map = { USD:'💵 Dolar', EUR:'💶 Euro', GRAM_ALTIN:'🥇 Gram Altın', GUMUS:'🥈 Gümüş' };
+    ic.innerHTML = Object.entries(data).filter(([k]) => k !== 'guncelleme').map(([k, v]) =>
+      `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem">
+        <div style="font-size:.72rem;color:var(--text-3)">${map[k] || k}</div>
+        <div style="font-weight:700;color:var(--accent)">${parseFloat(v).toLocaleString('tr-TR',{minimumFractionDigits:2})} ₺</div>
+       </div>`
+    ).join('');
+    if (data.guncelleme) ic.innerHTML += `<div class="dim small" style="grid-column:1/-1">Son güncelleme: ${data.guncelleme}</div>`;
+
+    if (up && up.ok) {
+      toast(`Canlı fiyatlar işlendi ✓ Güncellenen kayıt: ${up.guncellenen}`, 'success');
+      setTimeout(() => location.reload(), 600);
+    } else {
+      toast('Canlı fiyatlar alındı ama kayıt güncellenemedi', 'error');
+    }
+  } catch (e) { toast('Fiyat çekilemedi', 'error'); }
+  btn.innerHTML = '🔄 Canlı Fiyat Çek';
+  btn.disabled = false;
+}
+</script>
+{% endblock %}

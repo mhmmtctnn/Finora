@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Gelirler — Finora{% endblock %}
+{% block page_title %}💵 Gelirler{% endblock %}
+
+{% block content %}
+<div class="page-grid">
+
+  <div class="section-card">
+    <div class="section-title">➕ Yeni Gelir Ekle</div>
+    <form id="gelirForm" class="form-stack">
+      <div class="field">
+        <label>Başlık</label>
+        <input type="text" id="g_baslik" placeholder="Maaş, Freelance projesi…" required/>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Tutar (₺)</label>
+          <input type="number" id="g_miktar" step="0.01" placeholder="0,00" required/>
+        </div>
+        <div class="field">
+          <label>Tür</label>
+          <select id="g_tip">
+            <option value="maas">💼 Maaş</option>
+            <option value="ek_gelir">➕ Ek Gelir</option>
+            <option value="kira_geliri">🏠 Kira Geliri</option>
+            <option value="yatirim_getirisi">📈 Yatırım Getirisi</option>
+            <option value="diger">📦 Diğer</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Açıklama (isteğe bağlı)</label>
+        <input type="text" id="g_aciklama" placeholder="Kısa not…"/>
+      </div>
+      <button type="submit" class="btn btn-green btn-full">💾 Kaydet</button>
+    </form>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">📋 {{ ay }}/{{ yil }} Gelirlerin</div>
+    {% if gelirler %}
+    {% set gelir_tip_map = {
+      'maas':'💼 Maaş',
+      'ek_gelir':'➕ Ek Gelir',
+      'kira_geliri':'🏠 Kira Geliri',
+      'yatirim_getirisi':'📈 Yatırım Getirisi',
+      'taksit_gelir':'📆 Taksit Geliri',
+      'diger':'📦 Diğer'
+    } %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Başlık</th><th>Tür</th><th class="right">Tutar</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in gelirler %}
+          <tr id="gr-{{ g.id }}">
+            <td>{{ g.baslik }}</td>
+            <td>
+              <span class="badge badge-green">
+                {{ gelir_tip_map.get(g.tip, '📦 Diğer') }}
+              </span>
+            </td>
+            <td class="right amount amt-green">{{ "%.2f"|format(g.miktar) }} ₺</td>
+            <td class="actions"><button class="btn-icon" onclick="del('/api/gelir/{{ g.id }}','gr-{{ g.id }}')">🗑</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="total-line">
+      <span>Toplam Gelir</span>
+      <strong class="amt-green">{{ "%.2f"|format(gelirler|sum(attribute='miktar')) }} ₺</strong>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">💵</div><p>Bu ay gelir kaydı yok.</p></div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('gelirForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const res = await post('/api/gelir', {
+    baslik: document.getElementById('g_baslik').value,
+    miktar: document.getElementById('g_miktar').value,
+    tip:    document.getElementById('g_tip').value,
+    aciklama: document.getElementById('g_aciklama').value
+  });
+  if (res.ok) { toast('Gelir eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  else toast('Hata oluştu', 'error');
+});
+</script>
+{% endblock %}
