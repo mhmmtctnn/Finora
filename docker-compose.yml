@@ -13,6 +13,7 @@ services:
     environment:
       - FLASK_ENV=production
       - PRIVACY_MODE=1
+      - DB_PATH=/app/instance/butce.db
     restart: unless-stopped
 
 volumes:

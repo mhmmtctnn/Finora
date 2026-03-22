@@ -3,9 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 import os, json, re
+from pathlib import Path
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///butce.db'
+
+# Veritabanını varsayılan olarak repo içinde takip edilmeyen instance klasöründe tut.
+default_db_file = Path(__file__).resolve().parent / 'instance' / 'butce.db'
+db_file = Path(os.getenv('DB_PATH', str(default_db_file))).expanduser().resolve()
+db_file.parent.mkdir(parents=True, exist_ok=True)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///{db_file.as_posix()}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'butceplan_secret_2026'
 db = SQLAlchemy(app)
