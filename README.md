@@ -1,64 +1,103 @@
 # Finora
 
-Modern, Türkçe odaklı kişisel bütçe ve portföy yönetimi uygulaması.
+Türkçe odaklı, modern bir kişisel finans yönetim platformu.
 
-Finora; gelir, sabit gider, taksit, kredi kartı, günlük harcama, periyodik işlemler ve yatırım takibini tek panelde birleştirir. Ayrıca yerel (kural tabanlı) AI danışman ile doğal dilden kayıt ekleme/güncelleme desteği sunar.
+Finora; gelir, gider, kredi kartı, taksit, periyodik ödeme ve yatırım takibini tek bir panelde birleştirir. Uygulama, kural tabanlı AI danışman desteği ile doğal dil komutlarını finans kayıtlarına dönüştürür.
 
-## Öne Çıkan Özellikler
+---
 
-- Gelir / gider / kredi kartı / taksit yönetimi
-- Periyodik ödeme planlama ve yaklaşan işlemler görünümü
-- Yatırım portföyü, canlı fiyat güncelleme ve kâr-zarar analizi
-- Alacaklar listesi ve ürün takibi
-- Türkçe doğal dil AI komutları (ekle, güncelle, taksit vb.)
-- Responsive arayüz
+## Neden Finora?
 
-## Gizlilik ve Veri Güvenliği
+- Çok modüllü finans takibi (gelir, sabit gider, günlük gider, taksit, kredi kartı)
+- Portföy odaklı yatırım görünümü ve canlı fiyat güncelleme
+- Türkçe AI komutları ile hızlı kayıt/güncelleme
+- Mobil uyumlu, okunaklı ve operasyonel arayüz
+- Gizlilik odaklı varsayılan yapı
 
-Finora **gizlilik odaklı** çalışır:
+---
 
-- Finansal kayıtlarınız uygulama içinde (yerel veritabanında) tutulur.
-- AI danışman modülü kural tabanlıdır; finansal verileriniz LLM sağlayıcısına gönderilmez.
-- `PRIVACY_MODE=1` (varsayılan) iken, kullanıcıdan alınan URL ile dış siteye fiyat çekme özelliği kapalıdır.
+## Özellikler
 
-> Not: Canlı piyasa fiyatı servisleri (döviz/altın/borsa/kripto) aktif kullanımda yalnızca ilgili sembol/tip sorguları dış kaynağa gider; kişisel finansal tablolar gönderilmez.
+### Finans Modülleri
+- Gelir yönetimi
+- Sabit gider yönetimi
+- Günlük gider (yol/yemek/diğer)
+- Kredi kartı harcamaları
+- Taksit planlama ve aylık yük görünümü
+- Periyodik işlem planlama
+
+### Yatırım Modülü
+- Varlık bazlı portföy takibi
+- Canlı birim fiyat çekme (tekil/toplu)
+- Kâr/zarar ve maliyet analizi
+
+### AI Destekli İşlem Akışları
+- Doğal dilden gelir/gider/taksit ekleme
+- Kayıt güncelleme akışları
+- Yazım hatalarına toleranslı komut yorumlama
+
+---
+
+## Güvenlik ve Gizlilik
+
+Finora varsayılan olarak gizlilik odaklı çalışır:
+
+- Finansal veriler uygulama veritabanında tutulur.
+- AI danışman akışı kural tabanlıdır.
+- `PRIVACY_MODE=1` varsayılanı ile kullanıcı URL’si üzerinden dış ürün fiyatı çekme kapalıdır.
+
+> Not: Canlı piyasa fiyatı (döviz/altın/borsa/kripto) sorgularında yalnızca varlık türü/sembol bilgisi dış kaynağa gider; finansal tablo içeriği gönderilmez.
+
+---
 
 ## Teknoloji Yığını
 
 - Python 3.11
-- Flask
-- SQLAlchemy
-- Jinja2 + Vanilla JS + CSS
+- Flask + SQLAlchemy
+- Jinja2 + Vanilla JavaScript + CSS
 - Docker / Docker Compose
 
-## Kurulum (Docker)
+---
+
+## Hızlı Başlangıç
 
 ```bash
 docker compose up --build -d
 ```
 
-Uygulama:
-- http://localhost:5000
+Uygulama adresi: http://localhost:5000
+
+---
 
 ## Ortam Değişkenleri
 
-`docker-compose.yml` içinde:
+`docker-compose.yml`:
 
 - `FLASK_ENV=production`
-- `PRIVACY_MODE=1` → gizlilik modu açık
+- `PRIVACY_MODE=1` (önerilen)
 
-Gizlilik modu kapatmak isterseniz:
+Gizlilik modunu kapatmak için:
 
 - `PRIVACY_MODE=0`
 
+---
+
 ## Proje Yapısı
 
-- `app/app.py` → Flask uygulaması ve API uçları
-- `app/ai_advisor.py` → kural tabanlı AI danışman
-- `app/price_fetcher.py` → fiyat çekme/fallback akışları
-- `app/templates/` → Jinja şablonları
-- `app/static/` → CSS/JS/Favicon
+- `app/app.py` — Flask app, route ve API katmanı
+- `app/ai_advisor.py` — kural tabanlı AI danışman
+- `app/price_fetcher.py` — fiyat çekme ve fallback akışları
+- `app/templates/` — Jinja2 şablonları
+- `app/static/` — CSS, JS, favicon
+
+---
+
+## Sürüm Geçmişi
+
+Detaylı sürüm notları için: [CHANGELOG.md](CHANGELOG.md)
+
+---
 
 ## Lisans
 
-Bu depo sahibinin belirleyeceği lisans koşullarına tabidir.
+Bu proje, depo sahibinin belirleyeceği lisans koşullarına tabidir.

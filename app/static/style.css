@@ -397,13 +397,14 @@ input, select, textarea { font-family: var(--font); }
 }
 .inv-card:hover { border-color: var(--border2); }
 .inv-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; margin-bottom: .6rem; }
+.inv-card-header > div:first-child { min-width: 0; flex: 1; }
 .inv-type-icon   { font-size: 1.6rem; }
-.inv-title       { font-weight: 600; font-size: .9rem; }
-.inv-sub         { font-size: .78rem; color: var(--text-2); margin-top: .1rem; }
-.inv-values      { display: flex; gap: .75rem; margin-top: .4rem; font-size: .8rem; }
-.inv-val-item    { display: flex; flex-direction: column; }
+.inv-title       { font-weight: 600; font-size: .9rem; white-space: normal; overflow-wrap: anywhere; }
+.inv-sub         { font-size: .78rem; color: var(--text-2); margin-top: .1rem; white-space: normal; overflow-wrap: anywhere; }
+.inv-values      { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem .75rem; margin-top: .4rem; font-size: .8rem; }
+.inv-val-item    { display: flex; flex-direction: column; min-width: 0; }
 .inv-val-item span:first-child { color: var(--text-3); font-size: .7rem; }
-.inv-val-item span:last-child  { font-weight: 600; }
+.inv-val-item span:last-child  { font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
 .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .9rem; }
 
 /* ─── SHOPPING WISHLIST ──────────────────────────────────────────── */
