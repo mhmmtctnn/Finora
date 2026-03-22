@@ -128,7 +128,24 @@ document.querySelectorAll('.msg-bubble.ai[data-md]').forEach(el => {
 
 // Scroll to bottom
 const msgs = document.getElementById('chatMessages');
-msgs.scrollTop = msgs.scrollHeight;
+const BOTTOM_THRESHOLD = 64;
+let autoStickToBottom = true;
+
+function isNearBottom() {
+  return (msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight) < BOTTOM_THRESHOLD;
+}
+
+function scrollIfNeeded(force = false) {
+  if (force || autoStickToBottom || isNearBottom()) {
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+}
+
+msgs.addEventListener('scroll', () => {
+  autoStickToBottom = isNearBottom();
+});
+
+scrollIfNeeded(true);
 
 function hizliSor(soru) {
   document.getElementById('chatInput').value = soru;
@@ -142,24 +159,27 @@ async function gonder() {
 
   // Add user bubble
   appendMsg('user', soru);
+  autoStickToBottom = true;
   input.value = '';
   input.style.height = '';
 
   // Show typing
   const typing = document.getElementById('typing');
   typing.style.display = 'flex';
-  msgs.scrollTop = msgs.scrollHeight;
+  scrollIfNeeded();
 
   // Disable send
   document.getElementById('sendBtn').disabled = true;
 
   try {
-    const res  = await post('/api/ai/chat', { soru });
-    const data = await res.json();
+    const data = await post('/api/ai/chat', { soru });
     typing.style.display = 'none';
 
-    if (data.cevap) appendMsg('ai', data.cevap, true);
-    else appendMsg('ai', '⚠️ Bir hata oluştu. Lütfen tekrar deneyin.', false);
+    if (data && data.ok && data.cevap) {
+      appendMsg('ai', data.cevap, true);
+    } else {
+      appendMsg('ai', `⚠️ ${data?.error || 'Bir hata oluştu. Lütfen tekrar deneyin.'}`, false);
+    }
   } catch(e) {
     typing.style.display = 'none';
     appendMsg('ai', '⚠️ Bağlantı hatası.', false);
@@ -180,7 +200,7 @@ function appendMsg(role, text, isMarkdown) {
     row.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-bubble ai markdown-body">${parsed}</div>`;
     msgs.appendChild(row);
   }
-  msgs.scrollTop = msgs.scrollHeight;
+  scrollIfNeeded();
 }
 
 function escHtml(s) {

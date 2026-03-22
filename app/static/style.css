@@ -660,7 +660,11 @@ input, select, textarea { font-family: var(--font); }
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow);
-  min-height: calc(100vh - 178px);
+  position: sticky;
+  top: 76px;
+  height: calc(100vh - 98px);
+  max-height: calc(100vh - 98px);
+  min-height: 620px;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -672,6 +676,20 @@ input, select, textarea { font-family: var(--font); }
   display: flex;
   flex-direction: column;
   gap: .85rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.chat-panel .chat-messages::-webkit-scrollbar {
+  width: 10px;
+}
+.chat-panel .chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-panel .chat-messages::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 .chat-welcome {
   display: flex;
@@ -788,7 +806,13 @@ input, select, textarea { font-family: var(--font); }
   .dash-grid { grid-template-columns: 1fr; }
   .page-grid  { grid-template-columns: 1fr; }
   .ai-layout { grid-template-columns: 1fr; }
-  .chat-panel { min-height: 66vh; }
+  .chat-panel {
+    position: static;
+    top: auto;
+    height: auto;
+    max-height: none;
+    min-height: 66vh;
+  }
   .page-help { font-size: .8rem; }
 }
 @media (max-width: 600px) {
