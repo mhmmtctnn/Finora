@@ -19,6 +19,7 @@
           <option value="aidat">🏢 Apartman Aidatı</option>
           <option value="sigorta">🛡️ Sigorta</option>
           <option value="abonelik">📱 Abonelik</option>
+          <option value="tek_seferlik">🧾 Tek Seferlik Büyük Harcama</option>
           <option value="diger">📦 Diğer</option>
         </select>
       </div>
@@ -33,6 +34,16 @@
       <div class="field">
         <label>Açıklama (isteğe bağlı)</label>
         <input type="text" id="sg_aciklama" placeholder="Kısa not…"/>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Ay</label>
+          <input type="number" id="sg_ay" min="1" max="12" value="{{ ay }}"/>
+        </div>
+        <div class="field">
+          <label>Yıl</label>
+          <input type="number" id="sg_yil" min="2020" max="2100" value="{{ yil }}"/>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary btn-full">💾 Kaydet</button>
     </form>
@@ -53,6 +64,7 @@
         'abonelik':'📱 Abonelik',
         'telefon':'📱 Telefon',
         'fatura':'🧾 Fatura',
+        'tek_seferlik':'🧾 Tek Seferlik',
         'ulasim':'🚗 Ulaşım',
         'market':'🛒 Market',
         'diger':'📦 Diğer'
@@ -69,6 +81,7 @@
         'abonelik':'#94a3b8',
         'telefon':'#06b6d4',
         'fatura':'#f59e0b',
+        'tek_seferlik':'#ef4444',
         'ulasim':'#22c55e',
         'market':'#8b5cf6',
         'diger':'#6b7280'
@@ -88,7 +101,10 @@
             <div class="progress-fill" data-w="{{ pct }}%" style='background:{{ bar_color }}'></div>
           </div>
         </div>
-        <button class="btn-icon" onclick="del('/api/sabit-gider/{{ g.id }}','sgr-{{ g.id }}')" style="margin-left:.3rem">🗑</button>
+        <div style="display:flex;gap:.25rem;align-items:center;margin-left:.3rem">
+          <button class="btn-icon edit" title="Türü düzelt" data-id="{{ g.id }}" data-tip="{{ g.tip }}" onclick="giderTipModalAc(this)">🏷️</button>
+          <button class="btn-icon" onclick="del('/api/sabit-gider/{{ g.id }}','sgr-{{ g.id }}')">🗑</button>
+        </div>
       </div>
       {% else %}
       <div class="empty-state"><div class="empty-icon">🏠</div><p>Bu ay sabit gider kaydı yok.</p></div>
@@ -115,7 +131,10 @@
               <td>{{ g.baslik }}</td>
               <td><span class="badge badge-orange">{{ tip_map.get(g.tip, '📦 Diğer') }}</span></td>
               <td class="right amount amt-orange">{{ "%.2f"|format(g.miktar) }} ₺</td>
-              <td class="actions"><button class="btn-icon" onclick="del('/api/sabit-gider/{{ g.id }}','sgr-{{ g.id }}')">🗑</button></td>
+              <td class="actions">
+                <button class="btn-icon edit" title="Türü düzelt" data-id="{{ g.id }}" data-tip="{{ g.tip }}" onclick="giderTipModalAc(this)">🏷️</button>
+                <button class="btn-icon" onclick="del('/api/sabit-gider/{{ g.id }}','sgr-{{ g.id }}')">🗑</button>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -128,6 +147,36 @@
   </div>
 
 </div>
+
+<div id="sabitTipModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:1rem 1rem 1.1rem;width:min(92vw,360px)">
+    <div class="section-title" style="margin-bottom:.65rem">🏷️ Gider Kategorisini Değiştir</div>
+    <input type="hidden" id="sg_edit_id"/>
+    <div class="field" style="margin-bottom:.85rem">
+      <label>Yeni kategori</label>
+      <select id="sg_edit_tip">
+        <option value="kira">🏠 Kira</option>
+        <option value="elektrik">⚡ Elektrik</option>
+        <option value="su">💧 Su</option>
+        <option value="internet">📡 İnternet</option>
+        <option value="dogan_gaz">🔥 Doğalgaz</option>
+        <option value="aidat">🏢 Aidat</option>
+        <option value="sigorta">🛡️ Sigorta</option>
+        <option value="abonelik">📱 Abonelik</option>
+        <option value="telefon">📱 Telefon</option>
+        <option value="fatura">🧾 Fatura</option>
+        <option value="tek_seferlik">🧾 Tek Seferlik</option>
+        <option value="ulasim">🚗 Ulaşım</option>
+        <option value="market">🛒 Market</option>
+        <option value="diger">📦 Diğer</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button type="button" class="btn btn-ghost" onclick="giderTipModalKapat()">İptal</button>
+      <button type="button" class="btn btn-primary" onclick="giderTipKaydet()">Kaydet</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -138,10 +187,39 @@ document.getElementById('sabitForm').addEventListener('submit', async e => {
     tip:      document.getElementById('sg_tip').value,
     baslik:   document.getElementById('sg_baslik').value,
     miktar:   document.getElementById('sg_miktar').value,
-    aciklama: document.getElementById('sg_aciklama').value
+    aciklama: document.getElementById('sg_aciklama').value,
+    ay:       parseInt(document.getElementById('sg_ay').value || '{{ ay }}', 10),
+    yil:      parseInt(document.getElementById('sg_yil').value || '{{ yil }}', 10)
   });
   if (res.ok) { toast('Gider eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
   else toast('Hata oluştu', 'error');
 });
+
+function giderTipModalAc(btn) {
+  const id = btn.getAttribute('data-id');
+  const tip = btn.getAttribute('data-tip') || 'diger';
+  document.getElementById('sg_edit_id').value = id;
+  document.getElementById('sg_edit_tip').value = tip;
+  document.getElementById('sabitTipModal').style.display = 'flex';
+}
+
+function giderTipModalKapat() {
+  document.getElementById('sabitTipModal').style.display = 'none';
+}
+
+async function giderTipKaydet() {
+  const id = document.getElementById('sg_edit_id').value;
+  const tip = document.getElementById('sg_edit_tip').value;
+  if (!id || !tip) return;
+
+  const res = await put('/api/sabit-gider/' + id, { tip });
+  if (res.ok) {
+    toast('Gider türü güncellendi ✓', 'success');
+    setTimeout(() => location.reload(), 450);
+  } else {
+    toast('Tür güncellenemedi', 'error');
+  }
+  giderTipModalKapat();
+}
 </script>
 {% endblock %}

@@ -83,7 +83,10 @@
             </td>
             <td>{{ g.baslik }}</td>
             <td class="right amount amt-orange">{{ "%.2f"|format(g.miktar) }} ₺</td>
-            <td class="actions"><button class="btn-icon" onclick="del('/api/gunluk-gider/{{ g.id }}','gg-{{ g.id }}')">🗑</button></td>
+            <td class="actions">
+              <button class="btn-icon edit" title="Türü düzelt" data-id="{{ g.id }}" data-tip="{{ g.tip }}" onclick="gunlukTipModalAc(this)">🏷️</button>
+              <button class="btn-icon" onclick="del('/api/gunluk-gider/{{ g.id }}','gg-{{ g.id }}')">🗑</button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -96,6 +99,25 @@
     {% else %}
     <div class="empty-state"><div class="empty-icon">🚗</div><p>Bugün için kayıt yok.</p></div>
     {% endif %}
+  </div>
+</div>
+
+<div id="gunlukTipModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:1rem 1rem 1.1rem;width:min(92vw,340px)">
+    <div class="section-title" style="margin-bottom:.65rem">🏷️ Günlük Gider Türünü Değiştir</div>
+    <input type="hidden" id="gg_edit_id"/>
+    <div class="field" style="margin-bottom:.85rem">
+      <label>Yeni tür</label>
+      <select id="gg_edit_tip">
+        <option value="yol">🚗 Yol / Ulaşım</option>
+        <option value="yemek">🍽️ Yemek</option>
+        <option value="diger">📦 Diğer</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button type="button" class="btn btn-ghost" onclick="gunlukTipModalKapat()">İptal</button>
+      <button type="button" class="btn btn-primary" onclick="gunlukTipKaydet()">Kaydet</button>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -114,5 +136,32 @@ document.getElementById('giderForm').addEventListener('submit', async e => {
   if (res.ok) { toast('Gider eklendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
   else toast('Hata oluştu', 'error');
 });
+
+function gunlukTipModalAc(btn) {
+  const id = btn.getAttribute('data-id');
+  const tip = btn.getAttribute('data-tip') || 'diger';
+  document.getElementById('gg_edit_id').value = id;
+  document.getElementById('gg_edit_tip').value = tip;
+  document.getElementById('gunlukTipModal').style.display = 'flex';
+}
+
+function gunlukTipModalKapat() {
+  document.getElementById('gunlukTipModal').style.display = 'none';
+}
+
+async function gunlukTipKaydet() {
+  const id = document.getElementById('gg_edit_id').value;
+  const tip = document.getElementById('gg_edit_tip').value;
+  if (!id || !tip) return;
+
+  const res = await put('/api/gunluk-gider/' + id, { tip });
+  if (res.ok) {
+    toast('Gider türü güncellendi ✓', 'success');
+    setTimeout(() => location.reload(), 450);
+  } else {
+    toast('Tür güncellenemedi', 'error');
+  }
+  gunlukTipModalKapat();
+}
 </script>
 {% endblock %}

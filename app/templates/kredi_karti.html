@@ -12,7 +12,7 @@
         <label>Başlık</label>
         <input type="text" id="k_baslik" placeholder="Market, giyim, elektronik…" required/>
       </div>
-      <div class="form-row">
+      <div class="form-row kredi-form-row">
         <div class="field">
           <label>Tutar (₺)</label>
           <input type="number" id="k_miktar" step="0.01" placeholder="0,00" required/>
@@ -23,7 +23,7 @@
             <option value="market">🛒 Market</option>
             <option value="giyim">👗 Giyim</option>
             <option value="elektronik">📱 Elektronik</option>
-            <option value="saglik">🏥 Sağlık/Eczane</option>
+            <option value="saglik">🏥 Sağlık</option>
             <option value="egitim">📚 Eğitim</option>
             <option value="eglence">🎬 Eğlence</option>
             <option value="restoran">🍽️ Restoran</option>
@@ -55,15 +55,15 @@
       'diger':'📦 Diğer'
     } %}
     <div class="table-wrap">
-      <table class="data-table">
+      <table class="data-table kredi-table">
         <thead>
-          <tr><th>Başlık</th><th>Kategori</th><th class="right">Tutar</th><th></th></tr>
+          <tr><th>Başlık</th><th class="kk-kategori">Kategori</th><th class="right">Tutar</th><th></th></tr>
         </thead>
         <tbody>
           {% for h in harcamalar %}
           <tr id="kr-{{ h.id }}">
             <td>{{ h.baslik }}</td>
-            <td><span class="badge badge-purple">{{ kat_map.get(h.kategori, '📦 Diğer') }}</span></td>
+            <td class="kk-kategori"><span class="badge badge-purple">{{ kat_map.get(h.kategori, '📦 Diğer') }}</span></td>
             <td class="right amount amt-red">{{ "%.2f"|format(h.miktar) }} ₺</td>
             <td class="actions"><button class="btn-icon" onclick="del('/api/kredi-karti/{{ h.id }}','kr-{{ h.id }}')">🗑</button></td>
           </tr>

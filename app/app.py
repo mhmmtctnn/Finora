@@ -803,6 +803,43 @@ def sabit_gider_sil(gid):
     db.session.delete(g); db.session.commit()
     return jsonify({'ok': True})
 
+@app.route('/api/sabit-gider/<int:gid>', methods=['PUT'])
+def sabit_gider_guncelle(gid):
+    g = SabitGider.query.get_or_404(gid)
+    d = request.json or {}
+
+    gecerli_tipler = {
+        'kira', 'elektrik', 'su', 'internet', 'dogan_gaz', 'dogalgaz',
+        'aidat', 'sigorta', 'abonelik', 'telefon', 'fatura',
+        'tek_seferlik', 'ulasim', 'market', 'diger'
+    }
+
+    if 'tip' in d:
+        tip = (d.get('tip') or '').strip().lower()
+        if tip in gecerli_tipler:
+            # mevcut veriyle uyum için
+            if tip == 'dogalgaz':
+                tip = 'dogan_gaz'
+            g.tip = tip
+
+    if 'baslik' in d and d.get('baslik'):
+        g.baslik = str(d.get('baslik')).strip()
+
+    if 'miktar' in d and d.get('miktar') is not None:
+        g.miktar = float(d.get('miktar'))
+
+    if 'aciklama' in d:
+        g.aciklama = str(d.get('aciklama') or '').strip()
+
+    if 'ay' in d and d.get('ay') is not None:
+        g.ay = int(d.get('ay'))
+
+    if 'yil' in d and d.get('yil') is not None:
+        g.yil = int(d.get('yil'))
+
+    db.session.commit()
+    return jsonify({'ok': True, 'id': g.id, 'tip': g.tip})
+
 # ══════════════════════════════════════════════════════════════════════
 # API — TAKSİT
 # ══════════════════════════════════════════════════════════════════════
@@ -868,6 +905,33 @@ def gunluk_gider_sil(gid):
     g = GunlukGider.query.get_or_404(gid)
     db.session.delete(g); db.session.commit()
     return jsonify({'ok': True})
+
+@app.route('/api/gunluk-gider/<int:gid>', methods=['PUT'])
+def gunluk_gider_guncelle(gid):
+    g = GunlukGider.query.get_or_404(gid)
+    d = request.json or {}
+
+    gecerli_tipler = {'yol', 'yemek', 'diger'}
+
+    if 'tip' in d:
+        tip = (d.get('tip') or '').strip().lower()
+        if tip in gecerli_tipler:
+            g.tip = tip
+
+    if 'baslik' in d and d.get('baslik'):
+        g.baslik = str(d.get('baslik')).strip()
+
+    if 'miktar' in d and d.get('miktar') is not None:
+        g.miktar = float(d.get('miktar'))
+
+    if 'aciklama' in d:
+        g.aciklama = str(d.get('aciklama') or '').strip()
+
+    if 'tarih' in d and d.get('tarih'):
+        g.tarih = date.fromisoformat(str(d.get('tarih')))
+
+    db.session.commit()
+    return jsonify({'ok': True, 'id': g.id, 'tip': g.tip})
 
 # ══════════════════════════════════════════════════════════════════════
 # API — YATIRIM

@@ -208,6 +208,33 @@ input, select, textarea { font-family: var(--font); }
 .field select option { background: var(--surface2); }
 .field textarea { resize: vertical; min-height: 70px; }
 
+/* Taksit formu hizalama */
+.taksit-row {
+  grid-template-columns: 1.25fr .85fr;
+  align-items: end;
+}
+.taksit-row .field { min-width: 0; }
+.taksit-row .field label { white-space: nowrap; }
+
+/* Kredi kartı kategori hizalama */
+.kredi-form-row { align-items: end; }
+.kredi-table th.kk-kategori,
+.kredi-table td.kk-kategori {
+  white-space: nowrap;
+}
+.kredi-table td.kk-kategori .badge {
+  white-space: nowrap;
+  word-break: normal;
+}
+
+/* Gelirler formu hizalama */
+.gelir-form-row {
+  align-items: end;
+}
+.gelir-form-row .field {
+  min-width: 0;
+}
+
 /* ─── BUTTONS ────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
@@ -766,6 +793,7 @@ input, select, textarea { font-family: var(--font); }
 @media (max-width: 600px) {
   .summary-cards { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr; }
+  .taksit-row { grid-template-columns: 1fr; }
   .content-body { padding: 1rem; }
   .table-wrap .data-table { min-width: 560px; }
   .msg-row .msg-bubble { max-width: 94%; }
