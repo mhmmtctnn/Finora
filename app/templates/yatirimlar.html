@@ -120,7 +120,8 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:.2rem;align-items:flex-end">
             <button class="btn-icon edit" title="Türü düzelt" onclick="tipDuzenle({{ y.id }}, '{{ y.tip }}')">🏷️</button>
-            <button class="btn-icon edit" onclick="fiyatDuzenle({{ y.id }}, {{ y.birim_fiyat }})">✏️</button>
+            <button class="btn-icon edit" title="Pozisyonu düzenle" data-id="{{ y.id }}" data-miktar="{{ y.miktar }}" data-maliyet="{{ y.maliyet }}" onclick="pozisyonDuzenle(this)">🧮</button>
+            <button class="btn-icon edit" data-id="{{ y.id }}" data-fiyat="{{ y.birim_fiyat }}" onclick="fiyatDuzenle(this)">✏️</button>
             <button class="btn-icon" onclick="del('/api/yatirim/{{ y.id }}','yi-{{ y.id }}')">🗑</button>
           </div>
         </div>
@@ -177,6 +178,25 @@
     </div>
   </div>
 </div>
+
+<div id="pozisyonModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:1.5rem;width:360px;max-width:92vw">
+    <div class="section-title">🧮 Pozisyon Düzenle</div>
+    <input type="hidden" id="modal_pid"/>
+    <div class="field" style="margin-bottom:.7rem">
+      <label>Yeni Miktar</label>
+      <input type="number" id="modal_miktar" step="any" class="btn-full"/>
+    </div>
+    <div class="field" style="margin-bottom:1rem">
+      <label>Toplam Maliyet (₺)</label>
+      <input type="number" id="modal_maliyet" step="any" class="btn-full"/>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-primary" style="flex:1" onclick="pozisyonKaydet()">Kaydet</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('pozisyonModal').style.display='none'">İptal</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -225,17 +245,35 @@ async function canliBirimDoldur() {
   btn.innerHTML = old;
 }
 
-function fiyatDuzenle(id, fiyat) {
-  document.getElementById('modal_yid').value   = id;
-  document.getElementById('modal_fiyat').value = fiyat;
+function fiyatDuzenle(btn) {
+  document.getElementById('modal_yid').value   = btn.getAttribute('data-id');
+  document.getElementById('modal_fiyat').value = btn.getAttribute('data-fiyat');
   document.getElementById('fiyatModal').style.display = 'flex';
 }
+
+function pozisyonDuzenle(btn) {
+  document.getElementById('modal_pid').value = btn.getAttribute('data-id');
+  document.getElementById('modal_miktar').value = btn.getAttribute('data-miktar');
+  document.getElementById('modal_maliyet').value = btn.getAttribute('data-maliyet');
+  document.getElementById('pozisyonModal').style.display = 'flex';
+}
+
 async function fiyatKaydet() {
   const id = document.getElementById('modal_yid').value;
   const f  = document.getElementById('modal_fiyat').value;
   const res = await put('/api/yatirim/' + id, { birim_fiyat: f });
   if (res.ok) { toast('Fiyat güncellendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
   document.getElementById('fiyatModal').style.display = 'none';
+}
+
+async function pozisyonKaydet() {
+  const id = document.getElementById('modal_pid').value;
+  const miktar = document.getElementById('modal_miktar').value;
+  const maliyet = document.getElementById('modal_maliyet').value;
+  const res = await put('/api/yatirim/' + id, { miktar, maliyet });
+  if (res.ok) { toast('Pozisyon güncellendi ✓', 'success'); setTimeout(() => location.reload(), 600); }
+  else toast('Pozisyon güncellenemedi', 'error');
+  document.getElementById('pozisyonModal').style.display = 'none';
 }
 
 async function tipDuzenle(id, mevcutTip) {

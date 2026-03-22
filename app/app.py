@@ -988,6 +988,8 @@ def yatirim_guncelle(yid):
         y.guncelleme  = datetime.now()
     if 'miktar' in d:
         y.miktar = float(d['miktar'])
+    if 'maliyet' in d:
+        y.maliyet = float(d['maliyet'])
     db.session.commit()
     return jsonify({'ok': True, 'mevcut_deger': y.mevcut_deger, 'kar_zarar': y.kar_zarar,
                     'kar_zarar_pct': y.kar_zarar_pct})

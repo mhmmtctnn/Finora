@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 This project follows semantic versioning principles.
 
+## [1.2.0] - 2026-03-22
+
+### Added
+- Investment cards now support position editing directly from the portfolio detail area.
+- New position edit modal allows updating:
+  - quantity (`miktar`)
+  - total cost (`maliyet`)
+- Backend support for updating `maliyet` via `PUT /api/yatirim/<id>`.
+
+### Changed
+- Portfolio detail card actions extended for monthly stock accumulation workflows.
+- Minor UI improvements for investment card content alignment and readability.
+
 ## [1.1.0] - 2026-03-22
 
 ### Added
