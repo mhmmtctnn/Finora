@@ -662,6 +662,11 @@ def aylik_ozet(ay, yil):
     tper_gider = periyodik_map.get('gider', 0.0)
     tper_gelir = periyodik_map.get('gelir', 0.0)
 
+    # Yol ve yemek günlük ortalama hesaplama (ay geneline dağıtılmış)
+    gun_sayisi = 30 if ay != 2 else 28
+    aylik_yol = tyol if tyol > 0 else 0.0
+    aylik_yemek = tyemek if tyemek > 0 else 0.0
+
     tyatirim_deger = db.session.query(
         func.coalesce(func.sum(Yatirim.miktar * Yatirim.birim_fiyat), 0.0)
     ).scalar() or 0.0
@@ -675,6 +680,7 @@ def aylik_ozet(ay, yil):
     return dict(
         toplam_gelir=tg, toplam_sabit=ts, toplam_taksit=tt,
         toplam_kredi=tk, toplam_yol=tyol, toplam_yemek=tyemek,
+        aylik_yol=aylik_yol, aylik_yemek=aylik_yemek,
         toplam_diger=tdiger,
         toplam_periyodik_gider=tper_gider,
         toplam_periyodik_gelir=tper_gelir,
