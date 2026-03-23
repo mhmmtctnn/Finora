@@ -86,8 +86,10 @@
         'market':'#8b5cf6',
         'diger':'#6b7280'
       } %}
-      {% set toplam = giderler|sum(attribute='miktar') %}
-      {% for g in giderler %}
+      {% set periyodik_giderler = giderler|selectattr('tip','ne','tek_seferlik')|list %}
+      {% set tek_seferlik_giderler = giderler|selectattr('tip','eq','tek_seferlik')|list %}
+      {% set toplam = periyodik_giderler|sum(attribute='miktar') %}
+      {% for g in periyodik_giderler %}
       {% set pct = (g.miktar / toplam * 100)|round(1) if toplam > 0 else 0 %}
       {% set bar_color = renk_map.get(g.tip, '#e07b39') %}
       <div class="expense-row">
@@ -109,10 +111,41 @@
       {% else %}
       <div class="empty-state"><div class="empty-icon">🏠</div><p>Bu ay sabit gider kaydı yok.</p></div>
       {% endfor %}
-      {% if giderler %}
+      {% if periyodik_giderler %}
       <div class="total-line">
-        <span>Toplam Sabit Gider</span>
+        <span>Toplam Sabit Gider (Aylık)</span>
         <strong class="amt-orange">{{ "%.2f"|format(toplam) }} ₺</strong>
+      </div>
+      {% endif %}
+
+      {% if tek_seferlik_giderler %}
+      <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
+        <div class="section-title" style="margin-bottom:.75rem">🧾 Tek Seferlik Giderler</div>
+        {% set toplam_tek = tek_seferlik_giderler|sum(attribute='miktar') %}
+        {% for g in tek_seferlik_giderler %}
+        {% set pct = (g.miktar / toplam_tek * 100)|round(1) if toplam_tek > 0 else 0 %}
+        {% set bar_color = renk_map.get(g.tip, '#ef4444') %}
+        <div class="expense-row">
+          <span class="expense-row-icon">🧾</span>
+          <div class="expense-row-content">
+            <div class="expense-row-head">
+              <span class="expense-row-label">{{ g.baslik }}</span>
+              <span class="amount amt-orange expense-row-amount">{{ "%.2f"|format(g.miktar) }} ₺</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" data-w="{{ pct }}%" style='background:{{ bar_color }}'></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.25rem;align-items:center;margin-left:.3rem">
+            <button class="btn-icon edit" title="Türü düzelt" data-id="{{ g.id }}" data-tip="{{ g.tip }}" onclick="giderTipModalAc(this)">🏷️</button>
+            <button class="btn-icon" onclick="del('/api/sabit-gider/{{ g.id }}','sgr-{{ g.id }}')">🗑</button>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="total-line">
+          <span>Toplam Tek Seferlik</span>
+          <strong class="amt-orange">{{ "%.2f"|format(toplam_tek) }} ₺</strong>
+        </div>
       </div>
       {% endif %}
     </div>
